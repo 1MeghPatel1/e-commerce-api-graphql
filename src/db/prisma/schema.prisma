@@ -1,0 +1,115 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          Int       @id @default(autoincrement())
+  email       String    @unique
+  password    String
+  firstName   String
+  lastName    String
+  role        Role      @default(USER)
+  phoneNumber String?   @unique
+  address     String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  orders      Order[]
+  cartItems   CartItem[]
+  permissions Permission[]
+  refreshToken RefreshToken[]
+}
+
+model Order {
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  totalAmount Float
+  status      OrderStatus
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  items       OrderItem[]
+  user        User      @relation(fields: [userId], references: [id])
+}
+
+model OrderItem {
+  id        Int     @id @default(autoincrement())
+  orderId   Int
+  productId Int
+  quantity  Int
+  price     Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id])
+}
+
+model Product {
+  id          Int       @id @default(autoincrement())
+  name        String
+  description String?
+  price       Float
+  stock       Int
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  cartItems   CartItem[]
+  orderItems  OrderItem[]
+}
+
+model CartItem {
+  id        Int     @id @default(autoincrement())
+  userId    Int
+  productId Int
+  quantity  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User    @relation(fields: [userId], references: [id])
+  product   Product @relation(fields: [productId], references: [id])
+}
+
+model Permission {
+  id         Int      @id @default(autoincrement())
+  role       Role
+  userId     Int
+  resource   Resource 
+  create     Boolean  @default(false)
+  read       Boolean  @default(false)
+  update     Boolean  @default(false)
+  delete     Boolean  @default(false)
+  user       User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, resource])
+}
+
+model RefreshToken {
+  id        Int     @id @default(autoincrement())
+  userId    Int     @unique
+  token     String  @db.Text
+  expiredAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  USER
+}
+
+enum Resource {
+  PRODUCT
+  ORDER
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
